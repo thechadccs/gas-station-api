@@ -5,6 +5,7 @@ import math
 
 app = FastAPI()
 
+# This is CRITICAL to stop the "NetworkError" and "Unexpected Character" issues
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,32 +26,42 @@ def haversine(lat1, lon1, lat2, lon2):
 
 @app.get("/provinces")
 def get_provinces():
-    try:
-        r = requests.get(f"{API_BASE}/Provincias/", timeout=25)
-        return r.json()
-    except: return {"ListaProvincias": []}
+    r = requests.get(f"{API_BASE}/Provincias/")
+    return r.json()
 
 @app.get("/municipalities/{prov_id}")
 def get_municipalities(prov_id: str):
-    try:
-        r = requests.get(f"{API_BASE}/MunicipiosProvincia/{prov_id}", timeout=25)
-        return r.json()
-    except: return {"ListaMunicipios": []}
+    r = requests.get(f"{API_BASE}/MunicipiosProvincia/{prov_id}")
+    return r.json()
 
 @app.get("/search")
 async def search(municipality: str, fuel_key: str, radius: float, province: str):
-    try:
-        r = requests.get(f"{API_BASE}/EstacionesTerrestres/", timeout=35)
-        all_data = r.json().get('ListaEESSPrecio', [])
-        center = next((s for s in all_data if s['Municipio'].upper() == municipality.upper() and s['Provincia'].upper() == province.upper()), None)
-        if not center: return {"stations": []}
-        c_lat, c_lon = float(center['Latitud'].replace(',', '.')), float(center['Longitud (WGS84)'].replace(',', '.'))
-        results = []
-        for s in all_data:
-            if not s.get(fuel_key): continue
-            lat, lon = float(s['Latitud'].replace(',', '.')), float(s['Longitud (WGS84)'].replace(',', '.'))
-            dist = haversine(c_lat, c_lon, lat, lon)
-            if dist <= radius:
-                results.append({"brand": s['Rótulo'], "price": float(s[fuel_key].replace(',', '.')), "distance": round(dist, 2), "address": s['Dirección']})
-        return {"stations": sorted(results, key=lambda x: x['price'])}
-    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+    r = requests.get(f"{API_BASE}/EstacionesTerrestres/")
+    all_data = r.json().get('ListaEESSPrecio', [])
+    
+    # Identify the center coordinates for the municipality
+    center = next((s for s in all_data if s['Municipio'].upper() == municipality.upper() 
+                   and s['Provincia'].upper() == province.upper()), None)
+    
+    if not center: return {"stations": []}
+    
+    c_lat = float(center['Latitud'].replace(',', '.'))
+    c_lon = float(center['Longitud (WGS84)'].replace(',', '.'))
+
+    results = []
+    for s in all_data:
+        p_val = s.get(fuel_key)
+        if not p_val: continue
+        
+        lat, lon = float(s['Latitud'].replace(',', '.')), float(s['Longitud (WGS84)'].replace(',', '.'))
+        dist = haversine(c_lat, c_lon, lat, lon)
+
+        if dist <= radius:
+            results.append({
+                "brand": s['Rótulo'],
+                "price": float(p_val.replace(',', '.')),
+                "distance": round(dist, 2),
+                "address": s['Dirección']
+            })
+    
+    return {"stations": sorted(results, key=lambda x: x['price'])}
