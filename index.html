@@ -35,7 +35,6 @@
             <option value="Precio Gasolina 95 E5">Gasolina 95 E5</option>
             <option value="Precio Gasóleo A">Gasóleo A</option>
         </select>
-
         <button class="btn" onclick="performSearch()">FETCH DATA</button>
     </div>
 
@@ -52,9 +51,9 @@
     <div id="tank-ui" onclick="setTank(event)">
         <div id="fuel-level" style="height: 25%;"></div>
     </div>
-    <label>Liters (%):</label>
+    <label>Current Fuel (%):</label>
     <input type="number" id="perc" value="25" oninput="updateTank()">
-    <label>Total Cost:</label>
+    <label>Total Cost to Fill:</label>
     <input type="text" id="cost" readonly style="font-weight:bold; color:green; text-align:center">
 </div>
 
@@ -66,40 +65,43 @@
         try {
             const r = await fetch(`${API}/provinces`);
             const data = await r.json();
-            // Critical: Accessing the specific key "ListaProvincias"
             const list = data.ListaProvincias || [];
             const dl = document.getElementById('prov-list');
+            dl.innerHTML = ""; 
             list.forEach(p => {
                 provMap[p.Provincia.toUpperCase()] = p.IDPovincia;
-                dl.innerHTML += `<option value="${p.Provincia}">`;
+                const opt = document.createElement('option');
+                opt.value = p.Provincia;
+                dl.appendChild(opt);
             });
-        } catch (e) { console.error("Initial Load Error", e); }
+        } catch (e) { console.error("Province Load Error:", e); }
     }
 
-    function handleProvInput() {
+    window.handleProvInput = function() {
         clearTimeout(timer);
         timer = setTimeout(async () => {
             const val = document.getElementById('prov').value.toUpperCase();
             if (provMap[val]) {
                 const mInput = document.getElementById('muni');
                 mInput.disabled = false;
+                mInput.placeholder = "Loading cities...";
                 const r = await fetch(`${API}/municipalities/${provMap[val]}`);
                 const data = await r.json();
                 const list = data.ListaMunicipios || [];
                 document.getElementById('muni-list').innerHTML = list.map(m => `<option value="${m.Municipio}">`).join('');
+                mInput.placeholder = "Select Municipality";
             }
         }, 500);
-    }
+    };
 
-    async function performSearch() {
+    window.performSearch = async function() {
         const muni = document.getElementById('muni').value;
         const prov = document.getElementById('prov').value;
         const fuel = document.getElementById('fuel').value;
-        
         try {
-            const r = await fetch(`${API}/search?municipality=${muni}&fuel_key=${fuel}&radius=50&province=${prov}`);
+            const r = await fetch(`${API}/search?municipality=${encodeURIComponent(muni)}&fuel_key=${encodeURIComponent(fuel)}&radius=50&province=${encodeURIComponent(prov)}`);
             const data = await r.json();
-            if (!data.stations) return;
+            if (!data.stations || data.stations.length === 0) return alert("No stations found.");
 
             document.getElementById('res-card').style.display = 'block';
             document.getElementById('res-body').innerHTML = data.stations.map(s => `
@@ -107,28 +109,28 @@
                     <td>${s.brand}</td>
                     <td>${s.price.toFixed(3)}€</td>
                     <td>${s.distance}km</td>
-                    <td class="addr" onclick="window.open('https://www.google.com/maps/search/${encodeURIComponent(s.address)}')">${s.address}</td>
+                    <td class="addr" onclick="event.stopPropagation(); window.open('https://www.google.com/maps/search/' + encodeURIComponent('${s.address}'))">${s.address}</td>
                 </tr>`).join('');
-        } catch (e) { alert("Search failed. Check console."); }
-    }
+        } catch (e) { console.error("Search error:", e); }
+    };
 
-    function setTank(e) {
+    window.setTank = function(e) {
         const rect = document.getElementById('tank-ui').getBoundingClientRect();
         const p = Math.round(100 - ((e.clientY - rect.top) / rect.height * 100));
-        document.getElementById('perc').value = p;
+        document.getElementById('perc').value = Math.max(0, Math.min(100, p));
         updateTank();
-    }
+    };
 
-    function updateTank() {
+    window.updateTank = function() {
         document.getElementById('fuel-level').style.height = document.getElementById('perc').value + "%";
         calc();
-    }
+    };
 
-    function calc() {
+    window.calc = function() {
         if (!selectedPrice) return;
         const litersToFill = 50 * (1 - (document.getElementById('perc').value / 100));
         document.getElementById('cost').value = (litersToFill * selectedPrice).toFixed(2) + " €";
-    }
+    };
 
     window.onload = loadProvinces;
 </script>
