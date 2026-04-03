@@ -26,52 +26,31 @@ def haversine(lat1, lon1, lat2, lon2):
 @app.get("/provinces")
 def get_provinces():
     try:
-        r = requests.get(f"{API_BASE}/Provincias/", timeout=20)
+        r = requests.get(f"{API_BASE}/Provincias/", timeout=25)
         return r.json()
-    except Exception as e:
-        return {"ListaProvincias": []}
+    except: return {"ListaProvincias": []}
 
 @app.get("/municipalities/{prov_id}")
 def get_municipalities(prov_id: str):
     try:
-        r = requests.get(f"{API_BASE}/MunicipiosProvincia/{prov_id}", timeout=20)
+        r = requests.get(f"{API_BASE}/MunicipiosProvincia/{prov_id}", timeout=25)
         return r.json()
-    except Exception as e:
-        return {"ListaMunicipios": []}
+    except: return {"ListaMunicipios": []}
 
 @app.get("/search")
 async def search(municipality: str, fuel_key: str, radius: float, province: str):
     try:
-        r = requests.get(f"{API_BASE}/EstacionesTerrestres/", timeout=30)
+        r = requests.get(f"{API_BASE}/EstacionesTerrestres/", timeout=35)
         all_data = r.json().get('ListaEESSPrecio', [])
-        
-        # Find center point for radius calculation
-        center = next((s for s in all_data if s['Municipio'].upper() == municipality.upper() 
-                       and s['Provincia'].upper() == province.upper()), None)
-        
-        if not center:
-            return {"stations": []}
-        
-        c_lat = float(center['Latitud'].replace(',', '.'))
-        c_lon = float(center['Longitud (WGS84)'].replace(',', '.'))
-
+        center = next((s for s in all_data if s['Municipio'].upper() == municipality.upper() and s['Provincia'].upper() == province.upper()), None)
+        if not center: return {"stations": []}
+        c_lat, c_lon = float(center['Latitud'].replace(',', '.')), float(center['Longitud (WGS84)'].replace(',', '.'))
         results = []
         for s in all_data:
-            price_val = s.get(fuel_key)
-            if not price_val: continue
-            
-            lat = float(s['Latitud'].replace(',', '.'))
-            lon = float(s['Longitud (WGS84)'].replace(',', '.'))
+            if not s.get(fuel_key): continue
+            lat, lon = float(s['Latitud'].replace(',', '.')), float(s['Longitud (WGS84)'].replace(',', '.'))
             dist = haversine(c_lat, c_lon, lat, lon)
-
             if dist <= radius:
-                results.append({
-                    "brand": s['Rótulo'],
-                    "price": float(price_val.replace(',', '.')),
-                    "distance": round(dist, 2),
-                    "address": s['Dirección']
-                })
-        
+                results.append({"brand": s['Rótulo'], "price": float(s[fuel_key].replace(',', '.')), "distance": round(dist, 2), "address": s['Dirección']})
         return {"stations": sorted(results, key=lambda x: x['price'])}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
