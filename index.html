@@ -3,182 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gas Station Pro Full</title>
+    <title>Gas Station Pro - Full Mobile</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root { --primary: #2563eb; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; --accent: #059669; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; font-size: 14px; }
         .container { max-width: 600px; margin: 0 auto; }
+        .card { background: var(--card); padding: 15px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 10px; }
         
-        /* Layout Sections */
-        .card { background: var(--card); padding: 15px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
-        h2 { font-size: 1.1rem; margin-top: 0; display: flex; align-items: center; gap: 8px; }
+        label { font-weight: bold; display: block; margin-top: 10px; font-size: 0.85rem; }
+        input, select { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        input:disabled, select:disabled { background: #e2e8f0; cursor: not-allowed; }
         
-        /* Inputs */
-        input, select { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-group { display: flex; gap: 8px; margin-top: 15px; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
         .btn-primary { background: var(--primary); color: white; }
-        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); margin-top: 5px; }
+        .btn-reset { background: #64748b; color: white; }
 
-        /* Visual Fuel Tank */
-        #tank-container { width: 100%; height: 120px; background: #e2e8f0; border-radius: 8px; position: relative; overflow: hidden; cursor: crosshair; margin: 10px 0; border: 2px solid #cbd5e1; }
-        #fuel-level { position: absolute; bottom: 0; width: 100%; background: linear-gradient(to top, #f59e0b, #fbbf24); transition: height 0.3s; }
-        #tank-label { position: absolute; width: 100%; text-align: center; top: 45%; font-weight: bold; color: #1e293b; z-index: 1; }
+        /* Fuel Tank Visual */
+        #tank-wrapper { display: flex; gap: 15px; align-items: center; margin-top: 10px; }
+        #tank-container { width: 80px; height: 150px; background: #cbd5e1; border-radius: 5px; position: relative; overflow: hidden; cursor: crosshair; border: 2px solid #94a3b8; }
+        #fuel-level { position: absolute; bottom: 0; width: 100%; background: #f59e0b; transition: height 0.3s; }
+        .tank-mark { position: absolute; right: 5px; font-size: 10px; font-weight: bold; }
 
-        /* Slots (Persistence) */
-        .slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; }
-        .slot-btn { padding: 8px; font-size: 0.8rem; border: 1px solid #cbd5e1; border-radius: 4px; background: white; }
-
-        /* Station Cards */
-        .station-card { border-left: 5px solid var(--primary); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 12px; text-decoration: none; color: inherit; border-radius: 8px; background: white; }
-        .price { color: var(--accent); font-weight: 800; font-size: 1.2rem; }
-        .basket-item { background: #ecfdf5; border: 1px dashed var(--accent); margin-bottom: 5px; padding: 8px; border-radius: 6px; font-size: 0.9rem; display: flex; justify-content: space-between; }
+        /* Station List */
+        .station-card { border-left: 5px solid var(--primary); margin-bottom: 8px; padding: 12px; background: white; border-radius: 8px; cursor: pointer; }
+        .station-card:active { background: #f8fafc; }
+        .price { color: var(--accent); font-weight: 800; font-size: 1.1rem; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="card">
-        <h2><i class="fas fa-search"></i> Search & Slots</h2>
-        <input type="text" id="muni" placeholder="City (e.g. Alcorcon)">
-        <select id="fuel">
-            <option value="95">Gasolina 95</option>
-            <option value="98">Gasolina 98</option>
-            <option value="diesel">Diesel A</option>
-        </select>
-        <button class="btn btn-primary" onclick="fetchGas()">FETCH PRICES</button>
+        <h2 style="margin:0; font-size: 1.2rem;"><i class="fas fa-filter"></i> Search Filters</h2>
         
-        <div class="slot-grid">
-            <button class="slot-btn" onclick="saveSlot(1)">Save S1</button>
-            <button class="slot-btn" onclick="saveSlot(2)">Save S2</button>
-            <button class="slot-btn" onclick="loadSlot(1)">Load S1</button>
-            <button class="slot-btn" onclick="loadSlot(2)">Load S2</button>
+        <label>Province:</label>
+        <input list="prov-list" id="prov" placeholder="Select Province..." onchange="handleProvinceChange()">
+        <datalist id="prov-list"></datalist>
+
+        <label>Municipality:</label>
+        <input list="muni-list" id="muni" placeholder="Select Municipality..." disabled onchange="handleMuniChange()">
+        <datalist id="muni-list"></datalist>
+
+        <label>Fuel Type:</label>
+        <select id="fuel">
+            <option value="95">Gasolina 95 E5</option>
+            <option value="98">Gasolina 98 E5</option>
+            <option value="diesel">Gasóleo A</option>
+            <option value="premium">Gasóleo A Mejorado</option>
+        </select>
+
+        <label>Search Radius: <span id="rad-val">5.0</span> km</label>
+        <input type="range" id="radius" min="1" max="50" value="5" step="0.5" oninput="document.getElementById('rad-val').innerText=this.value">
+
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="fetchGas()">FETCH FROM API</button>
+            <button class="btn btn-reset" onclick="resetAll()">RESET ALL</button>
         </div>
     </div>
 
     <div class="card">
-        <h2><i class="fas fa-calculator"></i> Refuel Calculator</h2>
-        <p style="font-size: 0.8rem; margin: 0;">Tap tank to set current fuel level:</p>
-        <div id="tank-container" onclick="setTank(event)">
-            <div id="fuel-level" style="height: 20%;"></div>
-            <div id="tank-label">20% Full</div>
+        <h2 style="margin:0; font-size: 1.1rem;"><i class="fas fa-calculator"></i> Fuel Calculator</h2>
+        <div id="tank-wrapper">
+            <div id="tank-container" onclick="setTank(event)">
+                <div id="fuel-level" style="height: 25%;"></div>
+                <div class="tank-mark" style="top: 5px;">F</div>
+                <div class="tank-mark" style="top: 45%;">1/2</div>
+                <div class="tank-mark" style="bottom: 5px;">E</div>
+            </div>
+            <div style="flex-grow: 1;">
+                <label>Tank Capacity (L):</label>
+                <input type="number" id="capacity" value="50" oninput="calculateCost()">
+                <label>Current Fuel (%):</label>
+                <input type="number" id="current-fuel-input" value="25" oninput="updateTankFromInput()">
+                <label>Cost to Fill:</label>
+                <input type="text" id="total-cost" readonly style="color: var(--accent); font-weight: bold;">
+            </div>
         </div>
-        <div style="display:flex; gap: 10px;">
-            <input type="number" id="capacity" value="50" placeholder="Tank Capacity (L)">
-            <input type="text" id="total-cost" readonly placeholder="Cost to fill" style="background:#f8fafc; font-weight:bold; color:var(--accent)">
-        </div>
-    </div>
-
-    <div class="card" id="basket-card" style="display:none;">
-        <h2><i class="fas fa-shopping-basket"></i> Comparison Basket</h2>
-        <div id="basket-list"></div>
-        <button class="btn btn-outline" onclick="clearBasket()">Clear Basket</button>
     </div>
 
     <div id="results"></div>
 </div>
 
 <script>
-    const API_BASE_URL = "https://your-app.onrender.com"; // UPDATE THIS
-    let currentFuelPercent = 20;
+    const API_BASE_URL = "https://your-app.onrender.com"; // YOUR RENDER URL
     let selectedPrice = 0;
-    let basket = [];
 
-    // --- TANK LOGIC ---
+    // 1. INITIALIZE AUTOCOMPLETE (Provinces)
+    const provinces = ["Madrid", "Barcelona", "Valencia", "Sevilla", "Alicante", "Malaga"]; // API would normally provide this
+    const provDatalist = document.getElementById('prov-list');
+    provinces.forEach(p => provDatalist.innerHTML += `<option value="${p}">`);
+
+    // 2. RULES: CASCADE UNLOCKING
+    function handleProvinceChange() {
+        const muniInput = document.getElementById('muni');
+        if(document.getElementById('prov').value.length > 0) {
+            muniInput.disabled = false;
+            // In the Python code, this triggered a Fetch for municipalities
+            // Here we simulate the population of the muni list
+            populateMunicipalities();
+        }
+    }
+
+    function populateMunicipalities() {
+        const muniList = document.getElementById('muni-list');
+        muniList.innerHTML = '<option value="Alcorcon"><option value="Mostoles"><option value="Leganes">';
+    }
+
+    function handleMuniChange() {
+        // Rule: Once Municipality is selected, the "Fetch" button becomes the priority
+        console.log("Municipality set, ready to fetch.");
+    }
+
+    // 3. TANK LOGIC
     function setTank(e) {
         const rect = e.currentTarget.getBoundingClientRect();
         const y = e.clientY - rect.top;
-        currentFuelPercent = Math.round(100 - (y / rect.height * 100));
-        if(currentFuelPercent < 0) currentFuelPercent = 0;
-        if(currentFuelPercent > 100) currentFuelPercent = 100;
-        
-        document.getElementById('fuel-level').style.height = currentFuelPercent + "%";
-        document.getElementById('tank-label').innerText = currentFuelPercent + "% Full";
+        let percent = Math.round(100 - (y / rect.height * 100));
+        updateFuelState(percent);
+    }
+
+    function updateTankFromInput() {
+        let percent = document.getElementById('current-fuel-input').value;
+        updateFuelState(percent);
+    }
+
+    function updateFuelState(percent) {
+        if(percent < 0) percent = 0; if(percent > 100) percent = 100;
+        document.getElementById('fuel-level').style.height = percent + "%";
+        document.getElementById('current-fuel-input').value = percent;
         calculateCost();
     }
 
     function calculateCost() {
         const cap = parseFloat(document.getElementById('capacity').value) || 0;
+        const current = parseFloat(document.getElementById('current-fuel-input').value) || 0;
         if (selectedPrice > 0) {
-            const litersNeeded = cap * (1 - (currentFuelPercent / 100));
-            const cost = litersNeeded * selectedPrice;
-            document.getElementById('total-cost').value = cost.toFixed(2) + " €";
+            const litersToFill = cap * (1 - (current / 100));
+            document.getElementById('total-cost').value = (litersToFill * selectedPrice).toFixed(2) + " €";
         }
     }
 
-    // --- API & BASKET LOGIC ---
+    // 4. API FETCH
     async function fetchGas() {
         const muni = document.getElementById('muni').value;
         const fuel = document.getElementById('fuel').value;
+        const radius = document.getElementById('radius').value;
         const resDiv = document.getElementById('results');
-        resDiv.innerHTML = "<p>Loading...</p>";
+
+        if(!muni) return alert("Select a municipality first!");
+        resDiv.innerHTML = "<p>Searching...</p>";
 
         try {
-            const r = await fetch(`${API_BASE_URL}/search?municipality=${muni}&fuel_type=${fuel}`);
+            const r = await fetch(`${API_BASE_URL}/search?municipality=${muni}&fuel_type=${fuel}&radius=${radius}`);
             const data = await r.json();
             resDiv.innerHTML = "";
             data.stations.forEach(s => {
-                const div = document.createElement('div');
-                div.className = 'station-card card';
-                div.innerHTML = `
-                    <div onclick="selectStation(${s.price}, '${s.brand}')">
-                        <h3 style="margin:0">${s.brand}</h3>
-                        <small>${s.address}</small><br>
-                        <small>${s.distance_km}km away</small>
-                    </div>
-                    <div style="text-align:right">
+                const card = document.createElement('div');
+                card.className = 'station-card';
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between">
+                        <div>
+                            <strong>${s.brand}</strong><br>
+                            <small>${s.address}</small>
+                        </div>
                         <div class="price">${s.price.toFixed(3)}€</div>
-                        <button onclick="addToBasket('${s.brand}', ${s.price})" style="font-size:0.7rem">Compare</button>
-                        <br><a href="${s.google_maps_url}" style="font-size:0.7rem">Maps</a>
                     </div>
                 `;
-                resDiv.appendChild(div);
+                card.onclick = () => {
+                    selectedPrice = s.price;
+                    calculateCost();
+                    window.scrollTo({top: 400, behavior: 'smooth'});
+                };
+                resDiv.appendChild(card);
             });
-        } catch(e) { resDiv.innerHTML = "Error loading data."; }
+        } catch(e) { resDiv.innerHTML = "Error connecting to server."; }
     }
 
-    function selectStation(price, brand) {
-        selectedPrice = price;
-        calculateCost();
-        alert("Selected: " + brand + " (" + price + "€)");
-    }
-
-    function addToBasket(brand, price) {
-        basket.push({brand, price});
-        updateBasketUI();
-    }
-
-    function updateBasketUI() {
-        const bCard = document.getElementById('basket-card');
-        const bList = document.getElementById('basket-list');
-        bCard.style.display = basket.length ? "block" : "none";
-        bList.innerHTML = basket.map(item => `
-            <div class="basket-item">
-                <span>${item.brand}</span>
-                <b>${item.price.toFixed(3)}€</b>
-            </div>
-        `).join('');
-    }
-
-    function clearBasket() { basket = []; updateBasketUI(); }
-
-    // --- LOCAL STORAGE SLOTS ---
-    function saveSlot(id) {
-        const data = { 
-            muni: document.getElementById('muni').value, 
-            fuel: document.getElementById('fuel').value 
-        };
-        localStorage.setItem('slot_' + id, JSON.stringify(data));
-        alert("Slot " + id + " Saved!");
-    }
-
-    function loadSlot(id) {
-        const data = JSON.parse(localStorage.getItem('slot_' + id));
-        if(data) {
-            document.getElementById('muni').value = data.muni;
-            document.getElementById('fuel').value = data.fuel;
-            alert("Slot " + id + " Loaded!");
-        }
+    function resetAll() {
+        location.reload();
     }
 </script>
 </body>
