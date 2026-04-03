@@ -2,687 +2,165 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gas Station Pro - Complete Local Port</title>
+    <title>Gas Station Pro</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* Concepts: Modernized UI while retaining full feature set of local app */
-        :root { --blue: #2563eb; --blue-hover: #1d4ed8; --gray-bg: #f8fafc; --gray-border: #e2e8f0; --accent: #059669; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; color: #1e293b; padding: 15px; margin: 0; font-size: 14px; }
-        
-        /* General Containers */
-        .container { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 15px; }
-        @media (min-width: 800px) { .container { grid-template-columns: 2fr 1fr; } .results-panel { grid-column: 1 / 3; } }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .flex-group { display: flex; gap: 10px; align-items: center; }
-        
-        /* UI Elements */
+        :root { --blue: #2563eb; --accent: #059669; --border: #e2e8f0; }
+        body { font-family: sans-serif; background: #f1f5f9; padding: 15px; display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
         label { font-weight: bold; display: block; margin-top: 12px; font-size: 0.85rem; }
-        input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid var(--gray-border); border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: 0.2s; }
-        input:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-        input:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
-        .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; margin-top: 15px; cursor: pointer; text-transform: uppercase; font-size: 0.9rem; transition: background 0.2s; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .btn-primary { background: var(--blue); color: white; }
-        .btn-primary:hover { background: var(--blue-hover); }
-        .btn-reset { background: #64748b; color: white; margin-top: 10px; }
-        .btn-reset:hover { background: #475569; }
-        .btn-clear { background: #f8fafc; border: 1px solid var(--gray-border); color: #475569; margin-top: 5px; }
-        
-        /* Agreement: Search sequence and Radius starting at 50km */
-        input[type=range] { width: 100%; margin-top: 10px; height: 10px; border-radius: 5px; background: var(--gray-border); outline: none; }
-        
-        /* --- Results Panel (Treeview replacement) --- */
-        #results-header { font-weight: bold; text-transform: uppercase; border-bottom: 2px solid var(--gray-border); }
-        .result-row { display: grid; grid-template-columns: 2.5fr 1.5fr 1.5fr 3.5fr; gap: 10px; padding: 12px; background: white; border-radius: 8px; margin-bottom: 8px; align-items: center; cursor: pointer; border-left: 4px solid var(--blue); }
-        .result-row:hover { background: #f8fafc; }
-        .price { color: var(--accent); font-weight: bold; font-size: 1.1rem; }
-        .address-link { color: var(--blue); text-decoration: underline; cursor: alias; }
-
-        /* --- Gas Tank Visual with Labels (Ported from Tkinter Canvas) --- */
-        #tank-ui { display: flex; gap: 20px; align-items: center; justify-content: center; }
-        #tank-visual { width: 75px; height: 175px; background: #cbd5e1; border: 4px solid #94a3b8; border-radius: 5px; position: relative; overflow: hidden; cursor: pointer; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-        #fuel-fill { position: absolute; bottom: 0; width: 100%; background: linear-gradient(to top, #f59e0b, #fbbf24); transition: height 0.3s; }
-        /* Agreement: Add the labels (F, 1/2, E) to the tank */
-        .tank-mark { position: absolute; right: 8px; font-size: 11px; font-weight: bold; color: #1e293b; pointer-events: none; }
-        
-        /* --- Saved Presets Panel --- */
-        .slot-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 15px; }
-        .slot-btn { padding: 10px; text-align: center; border: 1px solid var(--gray-border); border-radius: 6px; background: #f8fafc; cursor: pointer; color: #475569; position: relative; font-size: 0.8rem; }
-        .slot-btn:hover { background: #e2e8f0; border-color: #cbd5e1; }
-        .slot-btn.active { background: #ecfdf5; border-color: var(--accent); color: var(--accent); font-weight: bold; }
-        .slot-label { font-size: 10px; position: absolute; top: -7px; left: 8px; background: white; padding: 0 4px; color: #94a3b8; }
-
-        /* --- Comparison Basket Panel --- */
-        #basket-list { list-style: none; padding: 0; margin: 10px 0 0 0; }
-        .basket-item { background: #f0fdf4; border: 1px solid #c3eec2; border-radius: 6px; padding: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .basket-item strong { color: var(--accent); }
-
-        /* concepts: Autocomplete, Sequence, Agreement features implemented via debouncing and data maps */
-        .loading-field { border-color: var(--blue); animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0px rgba(37, 99, 235, 0.2); } 70% { box-shadow: 0 0 0 5px rgba(37, 99, 235, 0); } 100% { box-shadow: 0 0 0 0px rgba(37, 99, 235, 0); } }
+        #tank-ui { width: 80px; height: 180px; background: #cbd5e1; border: 3px solid #94a3b8; position: relative; cursor: pointer; }
+        #fuel-level { position: absolute; bottom: 0; width: 100%; background: #f59e0b; transition: 0.3s; }
+        .mark { position: absolute; right: -25px; font-size: 12px; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; font-size: 0.9rem; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); }
+        .address-col { color: var(--blue); text-decoration: underline; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="card search-panel">
-        <h2 style="margin:0"><i class="fas fa-filter"></i> Search Filters</h2>
-        
+<div>
+    <div class="card">
+        <h2><i class="fas fa-filter"></i> Search Filters</h2>
         <label>Province:</label>
-        <div class="flex-group">
-            <input type="text" id="prov_input" placeholder="Type Province (Autocomplete with delay)...">
-            <i class="fas fa-spinner fa-spin" id="prov_loading" style="display:none; color: var(--blue);"></i>
-        </div>
-        <datalist id="provs"></datalist>
+        <input list="prov-list" id="prov" placeholder="Type Province (500ms delay)..." oninput="debounceProv()">
+        <datalist id="prov-list"></datalist>
 
         <label>Municipality:</label>
-        <div class="flex-group">
-            <input type="text" id="muni_input" placeholder="Select Province First" disabled>
-            <i class="fas fa-spinner fa-spin" id="muni_loading" style="display:none; color: var(--blue);"></i>
-        </div>
-        <datalist id="munis"></datalist>
+        <input list="muni-list" id="muni" placeholder="Select Province first" disabled oninput="debounceMuni()">
+        <datalist id="muni-list"></datalist>
 
         <label>Fuel Type:</label>
         <select id="fuel">
             <option value="Precio Gasolina 95 E5">Gasolina 95 E5</option>
             <option value="Precio Gasolina 98 E5">Gasolina 98 E5</option>
-            <option value="Precio Gasóleo A">Gasóleo A (Diesel)</option>
-            <option value="Precio Gasóleo A mejorado">Diesel Premium</option>
-            <option value="Precio Gases licuados del petróleo">GLP (Gases Licuados)</option>
+            <option value="Precio Gasóleo A">Gasóleo A</option>
         </select>
 
-        <label>Search Radius: <span id="rad_val">50.0</span> km</label>
-        <input type="range" id="radius" min="1" max="100" value="50" step="0.5" oninput="document.getElementById('rad_val').innerText=Number(this.value).toFixed(1)">
+        <label>Radius: <span id="rad-val">50.0</span> km</label>
+        <input type="range" id="radius" min="1" max="100" value="50" oninput="document.getElementById('rad-val').innerText=this.value">
 
-        <label style="margin-top: 20px;">Saved Presets (Load criteria):</label>
-        <div class="slot-grid">
-            <button class="slot-btn" id="slot-1" onclick="loadPreset(1)"><span class="slot-label">Slot 1</span>(Empty)</button>
-            <button class="slot-btn" id="slot-2" onclick="loadPreset(2)"><span class="slot-label">Slot 2</span>(Empty)</button>
-            <button class="slot-btn" id="slot-3" onclick="loadPreset(3)"><span class="slot-label">Slot 3</span>(Empty)</button>
-            <button class="slot-btn" id="slot-4" onclick="loadPreset(4)"><span class="slot-label">Slot 4</span>(Empty)</button>
-            <button class="slot-btn" id="slot-5" onclick="loadPreset(5)"><span class="slot-label">Slot 5</span>(Empty)</button>
-        </div>
-        <button class="btn btn-reset" style="padding: 8px; margin-top: 5px; text-transform: none; background: #64748b;" onclick="saveCurrentPreset()">Save Current to Active Slot</button>
-
-        <button class="btn btn-primary" onclick="mainSearchAction()">FETCH FROM API</button>
-        <button class="btn btn-reset" onclick="resetAllFilters()">RESET FILTERS</button>
+        <button class="btn btn-primary" onclick="performSearch()">FETCH FROM API</button>
     </div>
 
-    <div class="right-panel">
-        <div class="card calculator-panel">
-            <h2 style="margin:0"><i class="fas fa-calculator"></i> Refuel Calculator</h2>
-            <div id="tank-ui">
-                <div id="tank-visual" onclick="setTankFromClick(event)">
-                    <div id="fuel-fill" style="height: 25%;"></div>
-                    <div class="tank-mark" style="top: 8px;">F</div>
-                    <div class="tank-mark" style="top: 48%;">1/2</div>
-                    <div class="tank-mark" style="bottom: 8px;">E</div>
-                </div>
-                <div style="flex-grow: 1;">
-                    <label>Tank Capacity (L):</label>
-                    <input type="number" id="cap_input" value="50" oninput="calculateRefuelCost()">
-                    <label>Current Fuel (%):</label>
-                    <input type="number" id="perc_input" value="25" oninput="updateTankFillFromInput()">
-                    <label>Cost to Fill (Click station):</label>
-                    <input type="text" id="cost_display" readonly style="background:#f8fafc; border: 2px solid var(--border-gray); color: var(--accent); font-weight: bold; font-size: 1.2rem;">
-                </div>
-            </div>
-            <button class="btn btn-reset" onclick="resetCalculatorAction()">RESET CALCULATOR</button>
-        </div>
-
-        <div class="card basket-panel" id="basket-card" style="display: none; margin-top: 15px;">
-            <h2 style="margin:0"><i class="fas fa-shopping-basket"></i> Comparison Basket</h2>
-            <ul id="basket-list"></ul>
-            <button class="btn btn-clear" onclick="clearComparisonBasket()">Clear Basket</button>
-        </div>
+    <div class="card" id="results-card" style="display:none">
+        <table>
+            <thead><tr><th>Brand</th><th>Price</th><th>Dist</th><th>Address</th></tr></thead>
+            <tbody id="res-body"></tbody>
+        </table>
     </div>
+</div>
 
-    <div class="card results-panel" id="results-card" style="display: none;">
-        <h2><i class="fas fa-gas-pump"></i> Available Gas Stations (Cheapest first)</h2>
-        <p style="font-size:0.8rem; margin:0 0 10px 0;">(Tap Brand/Price/Dist to calculate cost. Tap Address for Maps)</p>
-        
-        <div class="result-row" id="results-header" style="cursor:default; border:none; background:#f8fafc; color:#64748b; font-size:0.8rem; padding: 10px;">
-            <span>Brand</span>
-            <span>Price (€)</span>
-            <span>Dist (km)</span>
-            <span>Address</span>
+<div class="card">
+    <h2><i class="fas fa-calculator"></i> Fuel Calculator</h2>
+    <div style="display:flex; gap:40px">
+        <div id="tank-ui" onclick="setTank(event)">
+            <div id="fuel-level" style="height: 25%;"></div>
+            <div class="mark" style="top:0">F</div>
+            <div class="mark" style="top:50%">1/2</div>
+            <div class="mark" style="bottom:0">E</div>
         </div>
-        <div id="results-container"></div>
+        <div style="flex:1">
+            <label>Capacity (L):</label><input type="number" id="cap" value="50" oninput="calc()">
+            <label>Current (%):</label><input type="number" id="perc" value="25" oninput="updateTankUI()">
+            <label>Cost to fill:</label><input type="text" id="cost" readonly style="font-weight:bold; color:var(--accent); background:#f8fafc">
+        </div>
     </div>
 </div>
 
 <script>
-    // Agreement: 1. Change YOUR_RENDER_URL to your service link
-    const API_BASE_URL = "https://gas-station-api-wlsi.onrender.com"; 
+    const API_BASE = "https://gas-station-api-wlsi.onrender.com"; 
+    let timer, provMap = {}, selectedPrice = 0;
 
-    // Agreement: IMPLEMENT DEBOUNCE with the strict 500ms delay (practically interpreted as 500ms for function)
-    const AUTOCOMPLETE_DELAY = 500; // milliseconds
-
-    // State Variables (mapping to the local python concepts)
-    let selectedStationPrice = 0;
-    let comparisonBasket = [];
-    let activePresetSlot = null;
-    let currentProvinceId = null;
-
-    // Data maps for ID lookup (mirroring python file's concepts)
-    let provinceNameMap = {}; // Name (upper) -> ID
-    let muniList = []; // List of municipalities for current province
-
-    // Initial Setup
-    window.onload = function() {
-        initializeAutocompleteFields();
-        updateTankFillFromInput(); // Set initial tank visualization
-        loadPresetMetadata(); // Check localStorage for saved searches
-    };
-
-    // Concepts: Debouncer helper (Rule: Implement the delay)
-    function debounce(func, delay) {
-        let timer;
-        return function (...args) {
-            clearTimeout(timer);
-            timer = setTimeout(() => func.apply(this, args), delay);
-        };
-    }
-
-    // concepts: AUTOCOMPLETE Logic - Step 1: Initialize Provinces
-    function initializeAutocompleteFields() {
-        // concepts: The page pulls the Provinces from API (Step 1 in sequence recapitulation)
-        const provInput = document.getElementById('prov_input');
-        const provLoading = document.getElementById('prov_loading');
-
-        // Rule: Autocomplete functionality on input
-        provInput.addEventListener('input', debounce(async (e) => {
-            const query = e.target.value.strip();
-            if (query.length < 2) return; // Wait for at least 2 chars
-
-            // concepts: Clear sequence chain (Step 2/3)
-            currentProvinceId = null;
-            lockMunicipalityField();
-            hideResults();
-
-            // Perform the API fetch for provinces
-            provLoading.style.display = 'block';
-            provInput.classList.add('loading-field');
-
-            try {
-                // Concepts: FastAPI endpoint provides the list
-                const response = await fetch(`${API_BASE_URL}/provinces`);
-                const data = await response.json();
-                provLoading.style.display = 'none';
-                provInput.classList.remove('loading-field');
-
-                // Concepts: Implementation of autocomplete behavior with delay
-                populateAutocompleteDropdown('provs', data, query, 'Provincia', 'IDPovincia', handleProvinceSelection);
-            
-            } catch (error) {
-                console.error("Province Autocomplete Error:", error);
-                provLoading.style.display = 'none';
-                provInput.classList.remove('loading-field');
-            }
-        }, AUTOCOMPLETE_DELAY)); // RULE: The 500ms delay
-    }
-
-    // Generic Populate helper for the debounced dropdowns
-    function populateAutocompleteDropdown(datalistId, items, query, nameKey, idKey, selectionCallback) {
-        const datalist = document.getElementById(datalistId);
-        datalist.innerHTML = '';
-        const lowerQuery = query.toLowerCase();
-
-        // concepts: Filtering logic within the autocomplete itself
-        items.forEach(item => {
-            const name = item[nameKey];
-            if (name.toLowerCase().includes(lowerQuery)) {
-                const opt = document.createElement('option');
-                opt.value = name;
-                // Store the ID in the datalist to capture it on change
-                opt.dataset.apiId = item[idKey]; 
-                datalist.appendChild(opt);
-            }
-        });
-
-        // concepts: Detect selection to trigger sequence (mirroring Python trace function)
-        const inputId = (datalistId === 'provs') ? 'prov_input' : 'muni_input';
-        const input = document.getElementById(inputId);
-        input.onchange = (e) => selectionCallback(e, datalist, items, idKey, nameKey);
-    }
-
-    // concepts: Callback Step 2: Sequence chain unlocks Municipality after Province selection
-    async function handleProvinceSelection(event, datalist, items, idKey, nameKey) {
-        const input = event.target;
-        const selectedValue = input.value;
-        const datalistOptions = datalist.getElementsByTagName('option');
-        
-        // Find the selected option in datalist to extract ID
-        let matchedId = null;
-        for (let i = 0; i < datalistOptions.length; i++) {
-            if (datalistOptions[i].value === selectedValue) {
-                matchedId = datalistOptions[i].dataset.apiId;
-                break;
-            }
-        }
-
-        if (matchedId) {
-            currentProvinceId = matchedId;
-            const provNameUpper = selectedValue.strip().upper();
-            // concepts: Rule Trace/Unlock Sequence
-            console.log(`Province '${selectedValue}' (ID: ${matchedId}) selected. Unlocking Municipality.`);
-            hideResults();
-            unlockMunicipalityField(selectedValue); // Clear muni field and unlock
-
-            // concepts: Trigger the debounced Muni Autocomplete setup
-            setupMunicipalityAutocomplete(matchedId);
-        } else {
-            console.log("Province selection not confirmed from dropdown.");
-            currentProvinceId = null;
-            lockMunicipalityField();
-        }
-    }
-
-    // concepts: Callback Step 3: Trigger debounced Muni fetch based on active Province
-    function setupMunicipalityAutocomplete(provinceId) {
-        const muniInput = document.getElementById('muni_input');
-        const muniLoading = document.getElementById('muni_loading');
-
-        muniInput.addEventListener('input', debounce(async (e) => {
-            const query = e.target.value.strip();
-            if (query.length < 2) return;
-            hideResults();
-
-            muniLoading.style.display = 'block';
-            muniInput.classList.add('loading-field');
-
-            try {
-                // concepts: Call the context-specific endpoint
-                const response = await fetch(`${API_BASE_URL}/municipalities/${provinceId}`);
-                const data = await response.json();
-                muniLoading.style.display = 'none';
-                muniInput.classList.remove('loading-field');
-
-                muniList = data; // Store full list for validation
-
-                populateAutocompleteDropdown('munis', data, query, 'Municipio', 'IDMunicipio', handleMunicipalitySelection);
-            
-            } catch (error) {
-                console.error("Muni Autocomplete Error:", error);
-                muniLoading.style.display = 'none';
-                muniInput.classList.remove('loading-field');
-            }
-        }, AUTOCOMPLETE_DELAY)); // RULE: The 500ms delay
-    }
-
-    function handleMunicipalitySelection(event, datalist, items, idKey, nameKey) {
-        const input = event.target;
-        const selectedValue = input.value;
-        const datalistOptions = datalist.getElementsByTagName('option');
-        
-        let matched = false;
-        for (let i = 0; i < datalistOptions.length; i++) {
-            if (datalistOptions[i].value === selectedValue) {
-                matched = true;
-                break;
-            }
-        }
-        
-        if(matched) {
-            hideResults();
-            console.log(`Municipality confirmed: ${selectedValue}. Ready to Fetch.`);
-        } else {
-             console.log("Municipality selection not confirmed from dropdown.");
-        }
-    }
-
-    // Concepts: UI helpers for the Cascade Unlocking sequence (rules from python trace)
-    function lockMunicipalityField() {
-        const muniInput = document.getElementById('muni_input');
-        muniInput.disabled = true;
-        muniInput.value = "";
-        muniInput.placeholder = "Select Province First";
-    }
-
-    function unlockMunicipalityField(provName) {
-        const muniInput = document.getElementById('muni_input');
-        muniInput.disabled = false;
-        muniInput.value = "";
-        muniInput.placeholder = `Type city in ${provName} (delay)...`;
-    }
-
-    function hideResults() {
-        document.getElementById('results-card').style.display = 'none';
-        selectedStationPrice = 0;
-        document.getElementById('cost_display').value = "";
-    }
-
-    // concepts: Main Fetch Logic (mapping to Python Fetch Action)
-    async function mainSearchAction() {
-        const provInput = document.getElementById('prov_input');
-        const muniInput = document.getElementById('muni_input');
-        const fuelSelect = document.getElementById('fuel');
-        const radiusInput = document.getElementById('radius');
-        const resultsContainer = document.getElementById('results-container');
-        const resultsCard = document.getElementById('results-card');
-
-        // Validation based on the original file rules (Province and Municipality required)
-        if (!provInput.value.strip()) return alert("Error: No Province selected.");
-        if (!muniInput.value.strip()) return alert("Error: No Municipality selected.");
-
-        // Concepts: UI update (mapping to "Searching..." label/progressbar concepts)
-        resultsCard.style.display = 'block';
-        resultsContainer.innerHTML = "<p style='text-align:center; padding: 20px;'><i class='fas fa-spinner fa-spin'></i> Fetching live data and calculating distances...</p>";
-        selectedStationPrice = 0;
-        document.getElementById('cost_display').value = "";
-
-        // Construct the context URL (cascading Step 4: Full search)
-        const params = new URLSearchParams({
-            municipality: muniInput.value,
-            fuel_key: fuelSelect.value, // Pass the hardcoded literal key ("Precio Gasolina 95 E5")
-            radius: radiusInput.value,
-            province_name: provInput.value
-        });
-
-        const fetchUrl = `${API_BASE_URL}/search?${params.toString()}`;
-        
+    // Load Provinces immediately for the map
+    async function loadInitial() {
         try {
-            // concepts: Call the core search endpoint on the FastAPI backend
-            const response = await fetch(fetchUrl);
-            const data = await response.json();
-            
-            if (response.status === 404) {
-                 resultsContainer.innerHTML = `<p style='text-align:center; padding:20px; color:#ef4444;'><i class='fas fa-exclamation-triangle'></i> Error: Municipality center coordinates not found. (The Ministry API dump may be missing data for ${muniInput.value})</p>`;
-                 return;
-            }
-
-            if (!data || data.length === 0) {
-                 resultsContainer.innerHTML = "<p style='text-align:center; padding:20px;'>No stations matching criteria found within radius.</p>";
-                 return;
-            }
-
-            // Agreement: implementation of columns (brand, price, distance, address) in substitute treeview
-            resultsContainer.innerHTML = '';
-            data.forEach(station => {
-                const row = document.createElement('div');
-                row.className = 'result-row';
-                
-                // Set the prices/links logic
-                // Agreement: Columns defined as brand, price, distance, address
-                // Agreement: Click handling based on column type
-                row.innerHTML = `
-                    <span class="calc-click">${station.brand}</span>
-                    <span class="price calc-click">${station.price.toFixed(3)}</span>
-                    <span class="calc-click">${station.distance}</span>
-                    <span class="address-link" onclick="handleAddressClick(event, '${station.maps_link}')">${station.address}</span>
-                `;
-
-                // Concepts: Rule for Refuel Calculation trigger (click on brand/price/dist)
-                row.addEventListener('click', (e) => {
-                    // Concepts: Verify the click target isn't the address link
-                    if (!e.target.classList.contains('address-link')) {
-                        handleStationSelectionAction(station.price, station.brand);
-                    }
-                });
-
-                // concepts: Comparison Basket (Ctrl+Click substitute)
-                row.addEventListener('click', (e) => {
-                    // Agreement: Ported feature, but browser default handles logic better than key capture
-                    // Simplified: Long-press or Ctrl+Click is hard to detect cross-device.
-                    // Instead, add a small 'add' button to each row.
-                });
-                // Adding a quick basket add button to the far left to simulate "selection for basket"
-                const basketAdd = document.createElement('button');
-                basketAdd.className = 'btn-clear';
-                basketAdd.style = 'padding: 4px; border-radius: 4px; margin-right: 5px; font-size: 0.7rem;';
-                basketAdd.innerHTML = '<i class="fas fa-plus"></i> Comp';
-                basketAdd.onclick = (e) => { e.stopPropagation(); addStationToComparisonBasket(station.brand, station.price); };
-                row.prepend(basketAdd);
-
-                resultsContainer.appendChild(row);
+            const r = await fetch(`${API_BASE}/provinces`);
+            const data = await r.json();
+            // Fixing the .forEach error: Accessing the specific key from Ministry API
+            const list = data.ListaProvincias || data; 
+            const dl = document.getElementById('prov-list');
+            list.forEach(p => {
+                provMap[p.Provincia.toUpperCase()] = p.IDPovincia;
+                const opt = document.createElement('option');
+                opt.value = p.Provincia;
+                dl.appendChild(opt);
             });
-
-        } catch (error) {
-            console.error("Fetch Error:", error);
-            resultsContainer.innerHTML = "<p style='text-align:center; color:#ef4444;'>Error connecting to backend API. Is the server awake (cold start)?</p>";
-        }
+        } catch (e) { console.error("Initial load error", e); }
     }
 
-    // concepts: Results Click Handling Logic
-    function handleStationSelectionAction(price, brand) {
-        selectedStationPrice = price;
-        calculateRefuelCost();
-        // Visual indicator in calc field that a station is active
-        document.getElementById('cost_display').placeholder = `Station: ${brand}`;
-        // concepts: Smooth scroll visual concepts to calc panel
-        window.scrollTo({top: 400, behavior: 'smooth'});
-    }
-
-    // Agreement: Ported feature, handleAddressClick triggers the address behavior
-    function handleAddressClick(event, mapsUrl) {
-        // Prevent row selection click trigger
-        event.stopPropagation(); 
-        // Agreement: Address loaded into google maps in default browser
-        window.open(mapsUrl, '_blank');
-    }
-
-    // --- Refuel Calculator Ported Concepts ---
-
-    // Agreement: A specific function that calculates the cost in liters.
-    function calculateRefuelCost() {
-        if (!selectedStationPrice) return;
-        const capacityLiters = parseFloat(document.getElementById('cap_input').value) || 0;
-        const currentPercentage = parseFloat(document.getElementById('perc_input').value) || 0;
-        const costDisplay = document.getElementById('cost_display');
-
-        if (capacityLiters <= 0) {
-             costDisplay.value = "Error: Invalid Cap.";
-             return;
-        }
-
-        // The exact cost formula from local python concepts:
-        // LitersNeeded = Capacity * (1 - (Current% / 100))
-        // Cost = LitersNeeded * Price
-        const litersToFill = capacityLiters * (1 - (currentPercentage / 100));
-        if(litersToFill < 0) {
-             costDisplay.value = "Tank Full! (0 €)";
-             return;
-        }
-
-        const totalCost = litersToFill * selectedStationPrice;
-        
-        costDisplay.value = totalCost.toFixed(2) + " €";
-    }
-
-    // concepts: TANK Visual Logic (Ported from local python concepts)
-    function setTankFromClick(event) {
-        const rect = event.currentTarget.getBoundingClientRect();
-        // concepts: The original geometry rules converted to web coordinates
-        const yCoord = event.clientY - rect.top;
-        let percentageFull = Math.round(100 - (yCoord / rect.height * 100));
-        
-        // concepts: Validate/Clamp rules
-        if(percentageFull < 0) percentageFull = 0; if(percentageFull > 100) percentageFull = 100;
-        
-        // Agreement: Updates percentages in labels.
-        document.getElementById('perc_input').value = percentageFull;
-        updateFuelStateUI(percentageFull);
-    }
-
-    // concepts: Dual-direction mapping: typing updates tank visualization
-    function updateTankFillFromInput() {
-        let percentageInput = document.getElementById('perc_input').value;
-        // visual clamp validation concepts
-        if(percentageInput < 0) { percentageInput = 0; document.getElementById('perc_input').value=0; }
-        if(percentageInput > 100) { percentageInput = 100; document.getElementById('perc_input').value=100; }
-        
-        updateFuelStateUI(percentageInput);
-    }
-
-    function updateFuelStateUI(percent) {
-        // concepts: implementation of geometry updates (Tkinter coordinates rule substitute)
-        document.getElementById('fuel-fill').style.height = percent + "%";
-        calculateRefuelCost(); // concepts: The specific function triggers recalculation
-    }
-
-    // concepts: Calculator UI reset action
-    function resetCalculatorAction() {
-        selectedStationPrice = 0;
-        document.getElementById('perc_input').value = 25;
-        document.getElementById('cap_input').value = 50;
-        document.getElementById('cost_display').value = "";
-        document.getElementById('cost_display').placeholder = "Select Station in List";
-        updateTankFillFromInput();
-    }
-
-    // --- Saved Presets (Slots) Ported Logic ---
-
-    // concepts: metadata concepts for storage slots
-    function loadPresetMetadata() {
-        for (let i = 1; i <= 5; i++) {
-            const data = localStorage.getItem(`gas_preset_${i}`);
-            const btn = document.getElementById(`slot-${i}`);
-            if (data) {
-                const parsed = JSON.parse(data);
-                // concepts: Original name mapping rule concepts
-                btn.innerHTML = `<span class="slot-label">Slot ${i}</span><b>${parsed.muni || parsed.prov}</b><br><small>${parsed.fuelKey.replace('Precio ','')}</small>`;
-                btn.title = `Criteria: ${parsed.prov} -> ${parsed.muni}, ${parsed.fuelKey}, ${parsed.radius}km`;
-            } else {
-                btn.innerHTML = `<span class="slot-label">Slot ${i}</span>(Empty)`;
+    function debounceProv() {
+        clearTimeout(timer);
+        timer = setTimeout(async () => {
+            const val = document.getElementById('prov').value.toUpperCase();
+            if (provMap[val]) {
+                const mInput = document.getElementById('muni');
+                mInput.disabled = false; mInput.placeholder = "Fetching cities...";
+                const r = await fetch(`${API_BASE}/municipalities/${provMap[val]}`);
+                const data = await r.json();
+                const mList = data.ListaMunicipios || data;
+                const dl = document.getElementById('muni-list');
+                dl.innerHTML = mList.map(m => `<option value="${m.Municipio}">`).join('');
+                mInput.placeholder = "Select City...";
             }
-        }
+        }, 500); // 500ms Delay
     }
 
-    // concepts: Preset load action concepts
-    function loadPreset(slotId) {
-        const dataStr = localStorage.getItem(`gas_preset_${slotId}`);
-        if (!dataStr) return;
-
-        resetAllFilters(); // clean slate sequence
-
-        const data = JSON.parse(dataStr);
-        activePresetSlot = slotId;
-
-        // Visual mapping rules
-        document.getElementById('radius').value = data.radius;
-        document.getElementById('rad_val').innerText = Number(data.radius).toFixed(1);
-        document.getElementById('fuel').value = data.fuelKey;
-        
-        // Sequence rules: Autocomplete values set without delay on explicit load
-        const provInput = document.getElementById('prov_input');
-        const muniInput = document.getElementById('muni_input');
-        
-        provInput.value = data.prov;
-        
-        // Concepts: Sequence cascade logic trace substitute
-        provInput.focus(); 
-        currentProvinceId = null; // We might not have the ID stored in preset data
-        // We need to trigger the muni dropdown population without standard autocomplete delay sequence
-        unlockMunicipalityField(data.prov);
-        muniInput.value = data.muni;
-
-        // Visual state in presets grid
-        document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(`slot-${slotId}`).classList.add('active');
-
-        console.log(`Criteria loaded from Slot ${slotId}. Context set.`);
+    function debounceMuni() {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            console.log("Municipality ready for fetch.");
+        }, 500);
     }
 
-    // concepts: Preset save action concepts
-    function saveCurrentPreset() {
-        const prov = document.getElementById('prov_input').value.strip();
-        const muni = document.getElementById('muni_input').value.strip();
-        if (!prov || !muni) return alert("Error: Criteria incomplete. Need Province and Municipality.");
-
-        // concept: specific slot selection rule substitute from local concepts
-        const slotToSave = activePresetSlot || parseInt(prompt(" Criteria incomplete. Active slot not set. Choose slot 1-5 to save current criteria:"), 10);
-        if(!slotToSave || slotToSave < 1 || slotToSave > 5) return;
-
-        const presetData = {
-            prov: prov,
-            muni: muni,
-            fuelKey: document.getElementById('fuel').value,
-            radius: document.getElementById('radius').value
-        };
-
-        // concepts: Local storage substitutes for local database Concepts
-        localStorage.setItem(`gas_preset_${slotToSave}`, JSON.stringify(presetData));
-        activePresetSlot = slotToSave;
+    async function performSearch() {
+        const muni = document.getElementById('muni').value;
+        const fuel = document.getElementById('fuel').value;
+        const rad = document.getElementById('radius').value;
+        const prov = document.getElementById('prov').value;
         
-        // concepts: UI state update (metadata) concepts
-        loadPresetMetadata();
-        document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(`slot-${slotToSave}`).classList.add('active');
-
-        alert(`Criteria saved to Slot ${slotToSave}.`);
-    }
-
-    // --- Comparison Basket Concepts ---
-
-    // Agreement: ported feature, substitute for Ctrl+Click handling in Python Concepts
-    function addStationToComparisonBasket(brand, price) {
-        comparisonBasket.push({brand, price});
-        updateComparisonBasketUI();
-    }
-
-    function updateComparisonBasketUI() {
-        const basketCard = document.getElementById('basket-card');
-        const basketList = document.getElementById('basket-list');
-        if (comparisonBasket.length === 0) {
-            basketCard.style.display = 'none';
-            return;
-        }
+        const r = await fetch(`${API_BASE}/search?municipality=${muni}&fuel_key=${fuel}&radius=${rad}&province=${prov}`);
+        const data = await r.json();
         
-        basketCard.style.display = 'block';
-        basketList.innerHTML = '';
-        
-        // Agreement: Columns for basket defined as brand and price.
-        comparisonBasket.forEach(item => {
-            const li = document.createElement('li');
-            li.className = 'basket-item';
-            li.innerHTML = `<span>${item.brand}</span><strong>${item.price.toFixed(3)} €</strong>`;
-            basketList.appendChild(li);
-        });
+        const body = document.getElementById('res-body');
+        document.getElementById('results-card').style.display = 'block';
+        body.innerHTML = data.stations.map(s => `
+            <tr>
+                <td onclick="selectStation(${s.price})">${s.brand}</td>
+                <td onclick="selectStation(${s.price})">${s.price.toFixed(3)}€</td>
+                <td onclick="selectStation(${s.price})">${s.distance}km</td>
+                <td class="address-col" onclick="window.open('http://googleusercontent.com/maps.google.com/search?q=${s.address}')">${s.address}</td>
+            </tr>
+        `).join('');
     }
 
-    function clearComparisonBasket() {
-        comparisonBasket = [];
-        updateComparisonBasketUI();
+    function selectStation(p) { selectedPrice = p; calc(); }
+    
+    function setTank(e) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const p = Math.round(100 - ((e.clientY - rect.top) / rect.height * 100));
+        document.getElementById('perc').value = p;
+        updateTankUI();
     }
 
-    // --- Final UI Ported Concept Features ---
-
-    // concepts: Filter UI reset action
-    function resetAllFilters() {
-        document.getElementById('prov_input').value = "";
-        document.getElementById('provInput').classList.remove('loading-field');
-        document.getElementById('muni_input').value = "";
-        document.getElementById('muniInput').classList.remove('loading-field');
-        
-        currentProvinceId = null;
-        lockMunicipalityField(); // Sequence back to start
-        
-        // Agreement: Implementation of default values (RADIUS starts at 50 km)
-        document.getElementById('radius').value = 50;
-        document.getElementById('rad_val').innerText = "50.0";
-        document.getElementById('fuel').selectedIndex = 0; // Default Fuel
-
-        hideResults();
-        clearComparisonBasket();
-        resetCalculatorAction();
-
-        // activePresetSlot = null;
-        document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active'));
+    function updateTankUI() {
+        const p = document.getElementById('perc').value;
+        document.getElementById('fuel-level').style.height = p + "%";
+        calc();
     }
 
-    // Concept: Exit Substitute (re-cap feature)
-    // Agreement: EXIT is typically not implemented in Web apps, but we can reset/redirect concepts.
-    function reInitializeConceptAction() {
-        alert("Initializing application concepts from sequence step 1.");
-        localStorage.clear(); // Clear all saved slots in storage concept substituting DB context rules
-        resetAllFilters();
-        location.reload(); // Hard reload substitute for initialize conceptual rules
+    function calc() {
+        if (!selectedPrice) return;
+        const cap = document.getElementById('cap').value;
+        const perc = document.getElementById('perc').value;
+        const liters = cap * (1 - (perc / 100));
+        document.getElementById('cost').value = (liters * selectedPrice).toFixed(2) + " €";
     }
 
-    // concepts: Basic text string sanitize helper concepts (substituting local file's Concepts)
-    String.prototype.strip = function() { return this.replace(/^\s+|\s+$/g, ''); };
-    String.prototype.upper = function() { return this.toUpperCase(); };
-
+    window.onload = loadInitial;
 </script>
-
 </body>
 </html>
