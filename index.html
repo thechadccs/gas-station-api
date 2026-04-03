@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gas Station Pro Mobile</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container { max-width: 500px; margin: 0 auto; }
+
+        h1 { text-align: center; color: var(--primary); font-size: 1.5rem; }
+
+        /* Search Box */
+        .search-card {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            margin-bottom: 20px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px; /* Prevents iOS zoom on focus */
+        }
+
+        button {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:active { opacity: 0.8; transform: scale(0.98); }
+
+        /* Results List */
+        .station-card {
+            background: var(--card);
+            margin-bottom: 12px;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .station-info h3 { margin: 0; font-size: 1.1rem; color: #0f172a; }
+        .station-info p { margin: 4px 0; font-size: 0.85rem; color: #64748b; }
+
+        .price-tag {
+            text-align: right;
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: #059669;
+        }
+
+        .loader { text-align: center; display: none; padding: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1><i class="fas fa-gas-pump"></i> Gas Station Pro</h1>
+
+    <div class="search-card">
+        <input type="text" id="muni" placeholder="City (e.g. Alcorcon)" value="Alcorcon">
+        <select id="fuel">
+            <option value="95">Gasolina 95</option>
+            <option value="98">Gasolina 98</option>
+            <option value="diesel">Diesel A</option>
+            <option value="premium">Diesel Premium</option>
+        </select>
+        <input type="number" id="radius" placeholder="Radius (km)" value="5">
+        <button onclick="fetchGas()">FIND CHEAPEST</button>
+    </div>
+
+    <div id="loader" class="loader"><i class="fas fa-spinner fa-spin fa-2x"></i><br>Fetching live prices...</div>
+    <div id="results"></div>
+</div>
+
+<script>
+    // ⚠️ CHANGE THIS TO YOUR RENDER URL
+    const API_BASE_URL = "https://gas-station-api-wlsi.onrender.com";
+
+    async function fetchGas() {
+        const muni = document.getElementById('muni').value;
+        const fuel = document.getElementById('fuel').value;
+        const rad = document.getElementById('radius').value;
+        const resultsDiv = document.getElementById('results');
+        const loader = document.getElementById('loader');
+
+        if(!muni) return alert("Please enter a city");
+
+        // Show Loader
+        resultsDiv.innerHTML = "";
+        loader.style.display = "block";
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/search?municipality=${muni}&fuel_type=${fuel}&radius=${rad}`);
+            const data = await response.json();
+
+            loader.style.display = "none";
+
+            if (data.stations && data.stations.length > 0) {
+                data.stations.forEach(s => {
+                    const card = `
+                        <a href="${s.google_maps_url}" target="_blank" class="station-card">
+                            <div class="station-info">
+                                <h3>${s.brand}</h3>
+                                <p><i class="fas fa-map-marker-alt"></i> ${s.address}</p>
+                                <p><i class="fas fa-road"></i> ${s.distance_km} km away</p>
+                            </div>
+                            <div class="price-tag">
+                                ${s.price.toFixed(3)}€
+                            </div>
+                        </a>
+                    `;
+                    resultsDiv.innerHTML += card;
+                });
+            } else {
+                resultsDiv.innerHTML = "<p style='text-align:center'>No stations found in this radius.</p>";
+            }
+        } catch (error) {
+            loader.style.display = "none";
+            alert("Error connecting to API. Is the server awake?");
+            console.error(error);
+        }
+    }
+</script>
+
+</body>
+</html>
