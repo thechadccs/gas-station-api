@@ -5,16 +5,21 @@ import math
 
 app = FastAPI()
 
-# This is CRITICAL to stop the "NetworkError" and "Unexpected Character" issues
+# Explicitly allow your GitHub Pages domain to fix the CORS error seen in logs
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://thechadccs.github.io",
+        "http://localhost:5500", # For local testing
+        "*" 
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 API_BASE = "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes"
+HEADERS = {"User-Agent": "Mozilla/5.0"} # Helps prevent Ministry API blocks
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
@@ -26,20 +31,19 @@ def haversine(lat1, lon1, lat2, lon2):
 
 @app.get("/provinces")
 def get_provinces():
-    r = requests.get(f"{API_BASE}/Provincias/")
+    r = requests.get(f"{API_BASE}/Provincias/", headers=HEADERS, timeout=20)
     return r.json()
 
 @app.get("/municipalities/{prov_id}")
 def get_municipalities(prov_id: str):
-    r = requests.get(f"{API_BASE}/MunicipiosProvincia/{prov_id}")
+    r = requests.get(f"{API_BASE}/MunicipiosProvincia/{prov_id}", headers=HEADERS, timeout=20)
     return r.json()
 
 @app.get("/search")
 async def search(municipality: str, fuel_key: str, radius: float, province: str):
-    r = requests.get(f"{API_BASE}/EstacionesTerrestres/")
+    r = requests.get(f"{API_BASE}/EstacionesTerrestres/", headers=HEADERS, timeout=40)
     all_data = r.json().get('ListaEESSPrecio', [])
     
-    # Identify the center coordinates for the municipality
     center = next((s for s in all_data if s['Municipio'].upper() == municipality.upper() 
                    and s['Provincia'].upper() == province.upper()), None)
     
