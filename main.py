@@ -21,7 +21,7 @@ def haversine(lat1, lon1, lat2, lon2):
         dlat, dlon = math.radians(lat2-lat1), math.radians(lon2-lon1)
         a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
         return R * 2 * math.asin(math.sqrt(a))
-    except: return 9999
+    except: return 999.0
 
 @app.get("/provinces")
 def get_provinces():
@@ -29,7 +29,7 @@ def get_provinces():
         r = requests.get(f"{API_BASE}/Provincias/", timeout=20)
         return r.json()
     except Exception as e:
-        return []
+        return {"ListaProvincias": []}
 
 @app.get("/municipalities/{prov_id}")
 def get_municipalities(prov_id: str):
@@ -37,16 +37,15 @@ def get_municipalities(prov_id: str):
         r = requests.get(f"{API_BASE}/MunicipiosProvincia/{prov_id}", timeout=20)
         return r.json()
     except Exception as e:
-        return []
+        return {"ListaMunicipios": []}
 
 @app.get("/search")
 async def search(municipality: str, fuel_key: str, radius: float, province: str):
     try:
-        # Request full data dump from Ministry
         r = requests.get(f"{API_BASE}/EstacionesTerrestres/", timeout=30)
         all_data = r.json().get('ListaEESSPrecio', [])
         
-        # Find coordinates for the chosen municipality center
+        # Find center point for radius calculation
         center = next((s for s in all_data if s['Municipio'].upper() == municipality.upper() 
                        and s['Provincia'].upper() == province.upper()), None)
         
@@ -75,5 +74,4 @@ async def search(municipality: str, fuel_key: str, radius: float, province: str)
         
         return {"stations": sorted(results, key=lambda x: x['price'])}
     except Exception as e:
-        print(f"Search Error: {e}")
-        return {"stations": [], "error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
