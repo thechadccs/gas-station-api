@@ -3,160 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gas Station Pro Mobile</title>
+    <title>Gas Station Pro Full</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            --primary: #2563eb;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --text: #1e293b;
-        }
+        :root { --primary: #2563eb; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; --accent: #059669; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        
+        /* Layout Sections */
+        .card { background: var(--card); padding: 15px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        h2 { font-size: 1.1rem; margin-top: 0; display: flex; align-items: center; gap: 8px; }
+        
+        /* Inputs */
+        input, select { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); margin-top: 5px; }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-        }
+        /* Visual Fuel Tank */
+        #tank-container { width: 100%; height: 120px; background: #e2e8f0; border-radius: 8px; position: relative; overflow: hidden; cursor: crosshair; margin: 10px 0; border: 2px solid #cbd5e1; }
+        #fuel-level { position: absolute; bottom: 0; width: 100%; background: linear-gradient(to top, #f59e0b, #fbbf24); transition: height 0.3s; }
+        #tank-label { position: absolute; width: 100%; text-align: center; top: 45%; font-weight: bold; color: #1e293b; z-index: 1; }
 
-        .container { max-width: 500px; margin: 0 auto; }
+        /* Slots (Persistence) */
+        .slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; }
+        .slot-btn { padding: 8px; font-size: 0.8rem; border: 1px solid #cbd5e1; border-radius: 4px; background: white; }
 
-        h1 { text-align: center; color: var(--primary); font-size: 1.5rem; }
-
-        /* Search Box */
-        .search-card {
-            background: var(--card);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            margin-bottom: 20px;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 16px; /* Prevents iOS zoom on focus */
-        }
-
-        button {
-            width: 100%;
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-
-        button:active { opacity: 0.8; transform: scale(0.98); }
-
-        /* Results List */
-        .station-card {
-            background: var(--card);
-            margin-bottom: 12px;
-            padding: 15px;
-            border-radius: 12px;
-            border-left: 5px solid var(--primary);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background 0.2s;
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .station-info h3 { margin: 0; font-size: 1.1rem; color: #0f172a; }
-        .station-info p { margin: 4px 0; font-size: 0.85rem; color: #64748b; }
-
-        .price-tag {
-            text-align: right;
-            font-weight: 800;
-            font-size: 1.2rem;
-            color: #059669;
-        }
-
-        .loader { text-align: center; display: none; padding: 20px; }
+        /* Station Cards */
+        .station-card { border-left: 5px solid var(--primary); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 12px; text-decoration: none; color: inherit; border-radius: 8px; background: white; }
+        .price { color: var(--accent); font-weight: 800; font-size: 1.2rem; }
+        .basket-item { background: #ecfdf5; border: 1px dashed var(--accent); margin-bottom: 5px; padding: 8px; border-radius: 6px; font-size: 0.9rem; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1><i class="fas fa-gas-pump"></i> Gas Station Pro</h1>
-
-    <div class="search-card">
-        <input type="text" id="muni" placeholder="City (e.g. Alcorcon)" value="Alcorcon">
+    <div class="card">
+        <h2><i class="fas fa-search"></i> Search & Slots</h2>
+        <input type="text" id="muni" placeholder="City (e.g. Alcorcon)">
         <select id="fuel">
             <option value="95">Gasolina 95</option>
             <option value="98">Gasolina 98</option>
             <option value="diesel">Diesel A</option>
-            <option value="premium">Diesel Premium</option>
         </select>
-        <input type="number" id="radius" placeholder="Radius (km)" value="5">
-        <button onclick="fetchGas()">FIND CHEAPEST</button>
+        <button class="btn btn-primary" onclick="fetchGas()">FETCH PRICES</button>
+        
+        <div class="slot-grid">
+            <button class="slot-btn" onclick="saveSlot(1)">Save S1</button>
+            <button class="slot-btn" onclick="saveSlot(2)">Save S2</button>
+            <button class="slot-btn" onclick="loadSlot(1)">Load S1</button>
+            <button class="slot-btn" onclick="loadSlot(2)">Load S2</button>
+        </div>
     </div>
 
-    <div id="loader" class="loader"><i class="fas fa-spinner fa-spin fa-2x"></i><br>Fetching live prices...</div>
+    <div class="card">
+        <h2><i class="fas fa-calculator"></i> Refuel Calculator</h2>
+        <p style="font-size: 0.8rem; margin: 0;">Tap tank to set current fuel level:</p>
+        <div id="tank-container" onclick="setTank(event)">
+            <div id="fuel-level" style="height: 20%;"></div>
+            <div id="tank-label">20% Full</div>
+        </div>
+        <div style="display:flex; gap: 10px;">
+            <input type="number" id="capacity" value="50" placeholder="Tank Capacity (L)">
+            <input type="text" id="total-cost" readonly placeholder="Cost to fill" style="background:#f8fafc; font-weight:bold; color:var(--accent)">
+        </div>
+    </div>
+
+    <div class="card" id="basket-card" style="display:none;">
+        <h2><i class="fas fa-shopping-basket"></i> Comparison Basket</h2>
+        <div id="basket-list"></div>
+        <button class="btn btn-outline" onclick="clearBasket()">Clear Basket</button>
+    </div>
+
     <div id="results"></div>
 </div>
 
 <script>
-    // ⚠️ CHANGE THIS TO YOUR RENDER URL
-    const API_BASE_URL = "https://gas-station-api-wlsi.onrender.com";
+    const API_BASE_URL = "https://your-app.onrender.com"; // UPDATE THIS
+    let currentFuelPercent = 20;
+    let selectedPrice = 0;
+    let basket = [];
 
+    // --- TANK LOGIC ---
+    function setTank(e) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        currentFuelPercent = Math.round(100 - (y / rect.height * 100));
+        if(currentFuelPercent < 0) currentFuelPercent = 0;
+        if(currentFuelPercent > 100) currentFuelPercent = 100;
+        
+        document.getElementById('fuel-level').style.height = currentFuelPercent + "%";
+        document.getElementById('tank-label').innerText = currentFuelPercent + "% Full";
+        calculateCost();
+    }
+
+    function calculateCost() {
+        const cap = parseFloat(document.getElementById('capacity').value) || 0;
+        if (selectedPrice > 0) {
+            const litersNeeded = cap * (1 - (currentFuelPercent / 100));
+            const cost = litersNeeded * selectedPrice;
+            document.getElementById('total-cost').value = cost.toFixed(2) + " €";
+        }
+    }
+
+    // --- API & BASKET LOGIC ---
     async function fetchGas() {
         const muni = document.getElementById('muni').value;
         const fuel = document.getElementById('fuel').value;
-        const rad = document.getElementById('radius').value;
-        const resultsDiv = document.getElementById('results');
-        const loader = document.getElementById('loader');
-
-        if(!muni) return alert("Please enter a city");
-
-        // Show Loader
-        resultsDiv.innerHTML = "";
-        loader.style.display = "block";
+        const resDiv = document.getElementById('results');
+        resDiv.innerHTML = "<p>Loading...</p>";
 
         try {
-            const response = await fetch(`${API_BASE_URL}/search?municipality=${muni}&fuel_type=${fuel}&radius=${rad}`);
-            const data = await response.json();
+            const r = await fetch(`${API_BASE_URL}/search?municipality=${muni}&fuel_type=${fuel}`);
+            const data = await r.json();
+            resDiv.innerHTML = "";
+            data.stations.forEach(s => {
+                const div = document.createElement('div');
+                div.className = 'station-card card';
+                div.innerHTML = `
+                    <div onclick="selectStation(${s.price}, '${s.brand}')">
+                        <h3 style="margin:0">${s.brand}</h3>
+                        <small>${s.address}</small><br>
+                        <small>${s.distance_km}km away</small>
+                    </div>
+                    <div style="text-align:right">
+                        <div class="price">${s.price.toFixed(3)}€</div>
+                        <button onclick="addToBasket('${s.brand}', ${s.price})" style="font-size:0.7rem">Compare</button>
+                        <br><a href="${s.google_maps_url}" style="font-size:0.7rem">Maps</a>
+                    </div>
+                `;
+                resDiv.appendChild(div);
+            });
+        } catch(e) { resDiv.innerHTML = "Error loading data."; }
+    }
 
-            loader.style.display = "none";
+    function selectStation(price, brand) {
+        selectedPrice = price;
+        calculateCost();
+        alert("Selected: " + brand + " (" + price + "€)");
+    }
 
-            if (data.stations && data.stations.length > 0) {
-                data.stations.forEach(s => {
-                    const card = `
-                        <a href="${s.google_maps_url}" target="_blank" class="station-card">
-                            <div class="station-info">
-                                <h3>${s.brand}</h3>
-                                <p><i class="fas fa-map-marker-alt"></i> ${s.address}</p>
-                                <p><i class="fas fa-road"></i> ${s.distance_km} km away</p>
-                            </div>
-                            <div class="price-tag">
-                                ${s.price.toFixed(3)}€
-                            </div>
-                        </a>
-                    `;
-                    resultsDiv.innerHTML += card;
-                });
-            } else {
-                resultsDiv.innerHTML = "<p style='text-align:center'>No stations found in this radius.</p>";
-            }
-        } catch (error) {
-            loader.style.display = "none";
-            alert("Error connecting to API. Is the server awake?");
-            console.error(error);
+    function addToBasket(brand, price) {
+        basket.push({brand, price});
+        updateBasketUI();
+    }
+
+    function updateBasketUI() {
+        const bCard = document.getElementById('basket-card');
+        const bList = document.getElementById('basket-list');
+        bCard.style.display = basket.length ? "block" : "none";
+        bList.innerHTML = basket.map(item => `
+            <div class="basket-item">
+                <span>${item.brand}</span>
+                <b>${item.price.toFixed(3)}€</b>
+            </div>
+        `).join('');
+    }
+
+    function clearBasket() { basket = []; updateBasketUI(); }
+
+    // --- LOCAL STORAGE SLOTS ---
+    function saveSlot(id) {
+        const data = { 
+            muni: document.getElementById('muni').value, 
+            fuel: document.getElementById('fuel').value 
+        };
+        localStorage.setItem('slot_' + id, JSON.stringify(data));
+        alert("Slot " + id + " Saved!");
+    }
+
+    function loadSlot(id) {
+        const data = JSON.parse(localStorage.getItem('slot_' + id));
+        if(data) {
+            document.getElementById('muni').value = data.muni;
+            document.getElementById('fuel').value = data.fuel;
+            alert("Slot " + id + " Loaded!");
         }
     }
 </script>
-
 </body>
 </html>
