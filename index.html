@@ -12,41 +12,33 @@
         input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; }
         .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .btn-primary { background: var(--blue); color: white; }
-        
         #tank-ui { width: 80px; height: 180px; background: #cbd5e1; border: 3px solid #94a3b8; position: relative; cursor: pointer; margin: 10px auto; }
         #fuel-level { position: absolute; bottom: 0; width: 100%; background: #f59e0b; transition: 0.3s; }
         .mark { position: absolute; right: -25px; font-size: 12px; font-weight: bold; }
-        
         table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; font-size: 0.85rem; }
         th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
         .address-col { color: var(--blue); text-decoration: underline; }
     </style>
 </head>
 <body>
-
 <div>
     <div class="card">
         <h2><i class="fas fa-filter"></i> Search Filters</h2>
         <label>Province:</label>
         <input list="prov-list" id="prov" placeholder="Type Province..." oninput="debounceProv()">
         <datalist id="prov-list"></datalist>
-
         <label>Municipality:</label>
         <input list="muni-list" id="muni" placeholder="Select Province first" disabled>
         <datalist id="muni-list"></datalist>
-
         <label>Fuel Type:</label>
         <select id="fuel">
             <option value="Precio Gasolina 95 E5">Gasolina 95 E5</option>
             <option value="Precio Gasóleo A">Gasóleo A</option>
         </select>
-
         <label>Radius: <span id="rad-val">50.0</span> km</label>
         <input type="range" id="radius" min="1" max="100" value="50" oninput="document.getElementById('rad-val').innerText=this.value">
-
         <button class="btn btn-primary" onclick="performSearch()">FETCH FROM API</button>
     </div>
-
     <div class="card" id="results-card" style="display:none">
         <table>
             <thead><tr><th>Brand</th><th>Price</th><th>Dist</th><th>Address</th></tr></thead>
@@ -54,7 +46,6 @@
         </table>
     </div>
 </div>
-
 <div class="card">
     <h2><i class="fas fa-calculator"></i> Fuel Calculator</h2>
     <div id="tank-ui" onclick="setTank(event)">
@@ -70,21 +61,25 @@
 </div>
 
 <script>
-    const API_BASE = "https://gas-station-api-wlsi.onrender.com; 
+    const API_BASE = "https://gas-station-api-wlsi.onrender.com"; 
     let timer, provMap = {}, selectedPrice = 0;
 
     async function init() {
-        const r = await fetch(`${API_BASE}/provinces`);
-        const data = await r.json();
-        const list = data.ListaProvincias || []; // Fix for forEach error
-        const dl = document.getElementById('prov-list');
-        list.forEach(p => {
-            provMap[p.Provincia.toUpperCase()] = p.IDPovincia;
-            dl.innerHTML += `<option value="${p.Provincia}">`;
-        });
+        try {
+            const r = await fetch(`${API_BASE}/provinces`);
+            const data = await r.json();
+            const list = data.ListaProvincias || [];
+            const dl = document.getElementById('prov-list');
+            list.forEach(p => {
+                provMap[p.Provincia.toUpperCase()] = p.IDPovincia;
+                const opt = document.createElement('option');
+                opt.value = p.Provincia;
+                dl.appendChild(opt);
+            });
+        } catch (e) { console.error("Init error:", e); }
     }
 
-    function debounceProv() {
+    window.debounceProv = function() {
         clearTimeout(timer);
         timer = setTimeout(async () => {
             const val = document.getElementById('prov').value.toUpperCase();
@@ -97,46 +92,45 @@
                 document.getElementById('muni-list').innerHTML = mList.map(m => `<option value="${m.Municipio}">`).join('');
                 mInput.placeholder = "Select City...";
             }
-        }, 500); // 500ms Delay
-    }
+        }, 500);
+    };
 
-    async function performSearch() {
+    window.performSearch = async function() {
         const muni = document.getElementById('muni').value;
         const fuel = document.getElementById('fuel').value;
         const rad = document.getElementById('radius').value;
         const prov = document.getElementById('prov').value;
-        
-        const r = await fetch(`${API_BASE}/search?municipality=${muni}&fuel_key=${fuel}&radius=${rad}&province=${prov}`);
-        const data = await r.json();
-        
-        const body = document.getElementById('res-body');
-        document.getElementById('results-card').style.display = 'block';
-        body.innerHTML = data.stations.map(s => `
-            <tr onclick="selectStation(${s.price})">
-                <td>${s.brand}</td>
-                <td>${s.price.toFixed(3)}€</td>
-                <td>${s.distance}km</td>
-                <td class="address-col" onclick="window.open('https://www.google.com/maps/search/${s.address}')">${s.address}</td>
-            </tr>
-        `).join('');
-    }
+        try {
+            const r = await fetch(`${API_BASE}/search?municipality=${muni}&fuel_key=${fuel}&radius=${rad}&province=${prov}`);
+            const data = await r.json();
+            if (!data.stations) return;
+            document.getElementById('results-card').style.display = 'block';
+            document.getElementById('res-body').innerHTML = data.stations.map(s => `
+                <tr onclick="selectStation(${s.price})">
+                    <td>${s.brand}</td>
+                    <td>${s.price.toFixed(3)}€</td>
+                    <td>${s.distance}km</td>
+                    <td class="address-col" onclick="event.stopPropagation(); window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.address)}')">${s.address}</td>
+                </tr>`).join('');
+        } catch (e) { console.error("Search error:", e); }
+    };
 
-    function selectStation(p) { selectedPrice = p; calc(); }
-    function setTank(e) {
-        const rect = e.currentTarget.getBoundingClientRect();
+    window.selectStation = function(p) { selectedPrice = p; calc(); };
+    window.setTank = function(e) {
+        const rect = document.getElementById('tank-ui').getBoundingClientRect();
         const p = Math.round(100 - ((e.clientY - rect.top) / rect.height * 100));
-        document.getElementById('perc').value = p;
+        document.getElementById('perc').value = Math.max(0, Math.min(100, p));
         updateTankUI();
-    }
-    function updateTankUI() {
+    };
+    window.updateTankUI = function() {
         document.getElementById('fuel-level').style.height = document.getElementById('perc').value + "%";
         calc();
-    }
-    function calc() {
+    };
+    window.calc = function() {
         if (!selectedPrice) return;
         const liters = document.getElementById('cap').value * (1 - (document.getElementById('perc').value / 100));
         document.getElementById('cost').value = (liters * selectedPrice).toFixed(2) + " €";
-    }
+    };
 
     window.onload = init;
 </script>
