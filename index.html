@@ -12,12 +12,14 @@
         input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; }
         .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .btn-primary { background: var(--blue); color: white; }
-        #tank-ui { width: 80px; height: 180px; background: #cbd5e1; border: 3px solid #94a3b8; position: relative; cursor: pointer; }
+        
+        #tank-ui { width: 80px; height: 180px; background: #cbd5e1; border: 3px solid #94a3b8; position: relative; cursor: pointer; margin: 10px auto; }
         #fuel-level { position: absolute; bottom: 0; width: 100%; background: #f59e0b; transition: 0.3s; }
         .mark { position: absolute; right: -25px; font-size: 12px; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; font-size: 0.9rem; }
-        th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); }
-        .address-col { color: var(--blue); text-decoration: underline; cursor: pointer; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; font-size: 0.85rem; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
+        .address-col { color: var(--blue); text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -26,17 +28,16 @@
     <div class="card">
         <h2><i class="fas fa-filter"></i> Search Filters</h2>
         <label>Province:</label>
-        <input list="prov-list" id="prov" placeholder="Type Province (500ms delay)..." oninput="debounceProv()">
+        <input list="prov-list" id="prov" placeholder="Type Province..." oninput="debounceProv()">
         <datalist id="prov-list"></datalist>
 
         <label>Municipality:</label>
-        <input list="muni-list" id="muni" placeholder="Select Province first" disabled oninput="debounceMuni()">
+        <input list="muni-list" id="muni" placeholder="Select Province first" disabled>
         <datalist id="muni-list"></datalist>
 
         <label>Fuel Type:</label>
         <select id="fuel">
             <option value="Precio Gasolina 95 E5">Gasolina 95 E5</option>
-            <option value="Precio Gasolina 98 E5">Gasolina 98 E5</option>
             <option value="Precio Gasóleo A">Gasóleo A</option>
         </select>
 
@@ -56,40 +57,31 @@
 
 <div class="card">
     <h2><i class="fas fa-calculator"></i> Fuel Calculator</h2>
-    <div style="display:flex; gap:40px">
-        <div id="tank-ui" onclick="setTank(event)">
-            <div id="fuel-level" style="height: 25%;"></div>
-            <div class="mark" style="top:0">F</div>
-            <div class="mark" style="top:50%">1/2</div>
-            <div class="mark" style="bottom:0">E</div>
-        </div>
-        <div style="flex:1">
-            <label>Capacity (L):</label><input type="number" id="cap" value="50" oninput="calc()">
-            <label>Current (%):</label><input type="number" id="perc" value="25" oninput="updateTankUI()">
-            <label>Cost to fill:</label><input type="text" id="cost" readonly style="font-weight:bold; color:var(--accent); background:#f8fafc">
-        </div>
+    <div id="tank-ui" onclick="setTank(event)">
+        <div id="fuel-level" style="height: 25%;"></div>
+        <div class="mark" style="top:0">F</div>
+        <div class="mark" style="top:50%">1/2</div>
+        <div class="mark" style="bottom:0">E</div>
     </div>
+    <label>Capacity (L):</label><input type="number" id="cap" value="50" oninput="calc()">
+    <label>Current (%):</label><input type="number" id="perc" value="25" oninput="updateTankUI()">
+    <label>Cost to fill:</label><input type="text" id="cost" readonly style="font-weight:bold; color:var(--accent)">
+    <button class="btn" style="background:#94a3b8; color:white" onclick="location.reload()">RESET ALL</button>
 </div>
 
 <script>
-    const API_BASE = "https://gas-station-api-wlsi.onrender.com"; 
+    const API_BASE = "https://gas-station-api-wlsi.onrender.com; 
     let timer, provMap = {}, selectedPrice = 0;
 
-    // Load Provinces immediately for the map
-    async function loadInitial() {
-        try {
-            const r = await fetch(`${API_BASE}/provinces`);
-            const data = await r.json();
-            // Fixing the .forEach error: Accessing the specific key from Ministry API
-            const list = data.ListaProvincias || data; 
-            const dl = document.getElementById('prov-list');
-            list.forEach(p => {
-                provMap[p.Provincia.toUpperCase()] = p.IDPovincia;
-                const opt = document.createElement('option');
-                opt.value = p.Provincia;
-                dl.appendChild(opt);
-            });
-        } catch (e) { console.error("Initial load error", e); }
+    async function init() {
+        const r = await fetch(`${API_BASE}/provinces`);
+        const data = await r.json();
+        const list = data.ListaProvincias || []; // Fix for forEach error
+        const dl = document.getElementById('prov-list');
+        list.forEach(p => {
+            provMap[p.Provincia.toUpperCase()] = p.IDPovincia;
+            dl.innerHTML += `<option value="${p.Provincia}">`;
+        });
     }
 
     function debounceProv() {
@@ -98,22 +90,14 @@
             const val = document.getElementById('prov').value.toUpperCase();
             if (provMap[val]) {
                 const mInput = document.getElementById('muni');
-                mInput.disabled = false; mInput.placeholder = "Fetching cities...";
+                mInput.disabled = false;
                 const r = await fetch(`${API_BASE}/municipalities/${provMap[val]}`);
                 const data = await r.json();
-                const mList = data.ListaMunicipios || data;
-                const dl = document.getElementById('muni-list');
-                dl.innerHTML = mList.map(m => `<option value="${m.Municipio}">`).join('');
+                const mList = data.ListaMunicipios || [];
+                document.getElementById('muni-list').innerHTML = mList.map(m => `<option value="${m.Municipio}">`).join('');
                 mInput.placeholder = "Select City...";
             }
         }, 500); // 500ms Delay
-    }
-
-    function debounceMuni() {
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-            console.log("Municipality ready for fetch.");
-        }, 500);
     }
 
     async function performSearch() {
@@ -128,39 +112,33 @@
         const body = document.getElementById('res-body');
         document.getElementById('results-card').style.display = 'block';
         body.innerHTML = data.stations.map(s => `
-            <tr>
-                <td onclick="selectStation(${s.price})">${s.brand}</td>
-                <td onclick="selectStation(${s.price})">${s.price.toFixed(3)}€</td>
-                <td onclick="selectStation(${s.price})">${s.distance}km</td>
-                <td class="address-col" onclick="window.open('http://googleusercontent.com/maps.google.com/search?q=${s.address}')">${s.address}</td>
+            <tr onclick="selectStation(${s.price})">
+                <td>${s.brand}</td>
+                <td>${s.price.toFixed(3)}€</td>
+                <td>${s.distance}km</td>
+                <td class="address-col" onclick="window.open('https://www.google.com/maps/search/${s.address}')">${s.address}</td>
             </tr>
         `).join('');
     }
 
     function selectStation(p) { selectedPrice = p; calc(); }
-    
     function setTank(e) {
         const rect = e.currentTarget.getBoundingClientRect();
         const p = Math.round(100 - ((e.clientY - rect.top) / rect.height * 100));
         document.getElementById('perc').value = p;
         updateTankUI();
     }
-
     function updateTankUI() {
-        const p = document.getElementById('perc').value;
-        document.getElementById('fuel-level').style.height = p + "%";
+        document.getElementById('fuel-level').style.height = document.getElementById('perc').value + "%";
         calc();
     }
-
     function calc() {
         if (!selectedPrice) return;
-        const cap = document.getElementById('cap').value;
-        const perc = document.getElementById('perc').value;
-        const liters = cap * (1 - (perc / 100));
+        const liters = document.getElementById('cap').value * (1 - (document.getElementById('perc').value / 100));
         document.getElementById('cost').value = (liters * selectedPrice).toFixed(2) + " €";
     }
 
-    window.onload = loadInitial;
+    window.onload = init;
 </script>
 </body>
 </html>
